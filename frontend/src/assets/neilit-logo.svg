@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="56" viewBox="0 0 240 56" fill="none">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1">
+      <stop offset="0" stop-color="#2B8EE6"/>
+      <stop offset="1" stop-color="#1462B8"/>
+    </linearGradient>
+  </defs>
+  <rect width="240" height="56" rx="6" fill="transparent" />
+  <g transform="translate(8,6)">
+    <circle cx="22" cy="22" r="20" fill="url(#g)" />
+    <path d="M10 28c2-6 10-10 20-10" stroke="rgba(255,255,255,0.7)" stroke-width="1.6" fill="none"/>
+    <path d="M6 18c6 0 12 0 18 4" stroke="rgba(255,255,255,0.55)" stroke-width="1.2" fill="none"/>
+  </g>
+
+  <g transform="translate(56,14)">
+    <text x="0" y="8" font-family="Segoe UI, Roboto, Arial" font-size="20" font-weight="700" fill="#12375A">neilit</text>
+    <text x="0" y="26" font-family="Segoe UI, Roboto, Arial" font-size="10" fill="#2F5D7A">quetion generator</text>
+  </g>
+</svg>
