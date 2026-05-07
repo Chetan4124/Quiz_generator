@@ -5,6 +5,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 
 import Layout from './Components/Layout/Layout';
+import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -14,6 +15,7 @@ import CreateQuestion from './pages/CreateQuestion';
 import QuizSessions from './pages/QuizSessions';
 import GenerateQuiz from './pages/GenerateQuiz';
 import ChatPage from './pages/Chatpage';
+import BulkUpload from './pages/BulkUpload';
 
 const theme = createTheme({
   palette: {
@@ -34,7 +36,7 @@ function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
   
   if (loading) return <div>Loading...</div>;
-  if (!isAuthenticated) return <Navigate to="/login" />;
+  if (!isAuthenticated) return <Navigate to="/" />;  // Changed from /login to /
   
   return children;
 }
@@ -47,15 +49,17 @@ function App() {
         <AuthProvider>
           <Toaster position="top-right" />
           <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             
+            {/* Protected Routes */}
             <Route path="/" element={
               <ProtectedRoute>
                 <Layout />
               </ProtectedRoute>
             }>
-              <Route index element={<Navigate to="/dashboard" />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="topics" element={<Topics />} />
               <Route path="topics/:topicId" element={<TopicDetail />} />
@@ -63,6 +67,7 @@ function App() {
               <Route path="quiz-sessions" element={<QuizSessions />} />
               <Route path="generate-quiz" element={<GenerateQuiz />} />
               <Route path="chats" element={<ChatPage />} />
+              <Route path="bulk-upload" element={<BulkUpload />} />
             </Route>
           </Routes>
         </AuthProvider>

@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     # Your apps
     'quiz',
     'chats',
+    'agent', 
 ]
 
 MIDDLEWARE = [

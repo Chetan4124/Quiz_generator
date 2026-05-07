@@ -4,11 +4,17 @@ import toast from 'react-hot-toast';
 import {
   Container, Paper, Typography, TextField, Button, Box, List,
   ListItem, ListItemButton, ListItemText, Divider, CircularProgress,
-  Avatar
+  Avatar, IconButton, Chip
 } from '@mui/material';
-import SendIcon from '@mui/icons-material/Send';
-import SmartToyIcon from '@mui/icons-material/SmartToy';
-import PersonIcon from '@mui/icons-material/Person';
+import {
+  Send as SendIcon,
+  SmartToy as SmartToyIcon,
+  Person as PersonIcon,
+  Add as AddIcon,
+  Chat as ChatIcon,
+  Delete as DeleteIcon,
+  AutoAwesome as AutoAwesomeIcon,
+} from '@mui/icons-material';
 
 export default function ChatPage() {
   const [sessions, setSessions] = useState([]);
@@ -18,14 +24,10 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
-  useEffect(() => {
-    fetchSessions();
-  }, []);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  useEffect(() => { fetchSessions(); }, []);
+  useEffect(() => { scrollToBottom(); }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -34,9 +36,9 @@ export default function ChatPage() {
   const fetchSessions = async () => {
     try {
       const response = await getChatSessions();
-      setSessions(response.data);
+      setSessions(response.data || []);
     } catch (error) {
-      toast.error('Failed to load chat sessions');
+      toast.error('Failed to load chats');
     } finally {
       setLoading(false);
     }
@@ -45,7 +47,7 @@ export default function ChatPage() {
   const fetchMessages = async (sessionId) => {
     try {
       const response = await getMessages(sessionId);
-      setMessages(response.data);
+      setMessages(response.data || []);
     } catch (error) {
       toast.error('Failed to load messages');
     }
@@ -55,43 +57,46 @@ export default function ChatPage() {
     try {
       const response = await createChatSession({ title: 'New Conversation' });
       const newSession = response.data;
-      setSessions([newSession, ...sessions]);
+      setSessions(prev => [newSession, ...prev]);
       setActiveSession(newSession);
       setMessages([]);
+      inputRef.current?.focus();
     } catch (error) {
-      toast.error('Failed to create new chat');
+      toast.error('Failed to create chat');
     }
   };
 
   const handleSendMessage = async () => {
     if (!input.trim() || !activeSession) return;
 
-    const userMessage = {
+    const tempMsg = {
+      id: Date.now(),
       role: 'user',
       content: input,
       created_at: new Date().toISOString(),
     };
 
-    setMessages([...messages, userMessage]);
+    setMessages(prev => [...prev, tempMsg]);
     setInput('');
     setSending(true);
 
     try {
       const response = await sendMessage(activeSession.id, {
-        content: input,
-        role: 'user',
+        message: input,
+        session_id: activeSession.id,
       });
       
-      // Assuming your backend responds with AI message
-      if (response.data.assistant_message) {
+      if (response.data?.ai_response) {
         setMessages(prev => [...prev, {
+          id: response.data.ai_response.id || Date.now() + 1,
           role: 'assistant',
-          content: response.data.assistant_message,
+          content: response.data.ai_response.content,
           created_at: new Date().toISOString(),
         }]);
       }
     } catch (error) {
-      toast.error('Failed to send message');
+      toast.error('Failed to get AI response');
+      setMessages(prev => prev.filter(m => m.id !== tempMsg.id));
     } finally {
       setSending(false);
     }
@@ -106,41 +111,83 @@ export default function ChatPage() {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" mt={4}>
-        <CircularProgress />
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <CircularProgress size={48} />
       </Box>
     );
   }
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ display: 'flex', height: '70vh', gap: 2 }}>
-        {/* Sessions Sidebar */}
-        <Paper sx={{ width: 280, p: 2, overflow: 'auto' }}>
-          <Button
-            fullWidth
-            variant="contained"
-            onClick={startNewChat}
-            sx={{ mb: 2 }}
-          >
-            New Chat
-          </Button>
-          <List>
+    <Container maxWidth="xl" sx={{ mt: 2, mb: 2, height: 'calc(100vh - 100px)' }}>
+      <Box sx={{ display: 'flex', height: '100%', gap: 2 }}>
+        {/* Sidebar */}
+        <Paper
+          sx={{
+            width: 300,
+            borderRadius: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Box sx={{ p: 2, background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }}>
+            <Typography variant="h6" sx={{ color: '#fff', fontWeight: 700, fontSize: '1.1rem' }}>
+              💬 AI Chat
+            </Typography>
+          </Box>
+          <Box sx={{ p: 1.5 }}>
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={startNewChat}
+              sx={{
+                borderRadius: '12px',
+                py: 1.2,
+                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                fontWeight: 600,
+                textTransform: 'none',
+                fontSize: '0.95rem',
+              }}
+            >
+              New Conversation
+            </Button>
+          </Box>
+          <Divider />
+          <List sx={{ flex: 1, overflow: 'auto', px: 1 }}>
             {sessions.map((session) => (
-              <ListItem
-                key={session.id}
-                disablePadding
-              >
+              <ListItem key={session.id} disablePadding sx={{ mb: 0.5 }}>
                 <ListItemButton
                   selected={activeSession?.id === session.id}
                   onClick={() => {
                     setActiveSession(session);
                     fetchMessages(session.id);
                   }}
+                  sx={{
+                    borderRadius: '12px',
+                    '&.Mui-selected': {
+                      bgcolor: '#eef2ff',
+                      '&:hover': { bgcolor: '#e0e7ff' },
+                    },
+                  }}
                 >
+                  <Avatar sx={{ width: 36, height: 36, mr: 1.5, bgcolor: '#6366f1' }}>
+                    <ChatIcon sx={{ fontSize: 18 }} />
+                  </Avatar>
                   <ListItemText
-                    primary={session.title || 'Untitled'}
-                    secondary={new Date(session.created_at).toLocaleDateString()}
+                    primary={session.title || 'Conversation'}
+                    secondary={session.last_message?.content?.slice(0, 40) || 'No messages'}
+                    primaryTypographyProps={{
+                      fontWeight: 600,
+                      fontSize: '0.9rem',
+                      noWrap: true,
+                    }}
+                    secondaryTypographyProps={{
+                      fontSize: '0.75rem',
+                      noWrap: true,
+                    }}
                   />
                 </ListItemButton>
               </ListItem>
@@ -149,58 +196,89 @@ export default function ChatPage() {
         </Paper>
 
         {/* Chat Area */}
-        <Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 2 }}>
+        <Paper
+          sx={{
+            flex: 1,
+            borderRadius: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
           {activeSession ? (
             <>
-              <Box sx={{ flex: 1, overflow: 'auto', mb: 2 }}>
+              {/* Chat Header */}
+              <Box
+                sx={{
+                  p: 2,
+                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                }}
+              >
+                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)' }}>
+                  <SmartToyIcon />
+                </Avatar>
+                <Box>
+                  <Typography sx={{ color: '#fff', fontWeight: 600 }}>
+                    {activeSession.title || 'AI Assistant'}
+                  </Typography>
+                  <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem' }}>
+                    NIELIT Question Generator AI
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Messages */}
+              <Box sx={{ flex: 1, overflow: 'auto', p: 3, bgcolor: '#f8fafc' }}>
                 {messages.length === 0 ? (
-                  <Box
-                    sx={{
-                      height: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Typography color="textSecondary">
-                      Start a conversation with the AI assistant
+                  <Box sx={{ textAlign: 'center', mt: 8 }}>
+                    <AutoAwesomeIcon sx={{ fontSize: 64, color: '#6366f1', mb: 2 }} />
+                    <Typography variant="h6" color="text.secondary">
+                      Start the conversation
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Ask me anything about NIELIT topics!
                     </Typography>
                   </Box>
                 ) : (
-                  messages.map((message, index) => (
+                  messages.map((msg, i) => (
                     <Box
-                      key={index}
+                      key={msg.id || i}
                       sx={{
                         display: 'flex',
-                        justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
+                        justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
                         mb: 2,
+                        animation: 'fadeIn 0.3s ease',
                       }}
                     >
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: message.role === 'user' ? 'flex-end' : 'flex-start',
-                          maxWidth: '70%',
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                          <Avatar sx={{ width: 24, height: 24, mr: 1 }}>
-                            {message.role === 'user' ? <PersonIcon /> : <SmartToyIcon />}
-                          </Avatar>
-                          <Typography variant="caption" color="textSecondary">
-                            {message.role === 'user' ? 'You' : 'AI Assistant'}
-                          </Typography>
-                        </Box>
+                      {msg.role === 'assistant' && (
+                        <Avatar sx={{ width: 36, height: 36, mr: 1, bgcolor: '#6366f1' }}>
+                          <SmartToyIcon sx={{ fontSize: 20 }} />
+                        </Avatar>
+                      )}
+                      <Box sx={{ maxWidth: '70%' }}>
                         <Paper
                           sx={{
                             p: 2,
-                            backgroundColor: message.role === 'user' ? '#1976d2' : '#f5f5f5',
-                            color: message.role === 'user' ? 'white' : 'inherit',
+                            borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                            bgcolor: msg.role === 'user' ? '#6366f1' : '#fff',
+                            color: msg.role === 'user' ? '#fff' : 'inherit',
+                            boxShadow: msg.role === 'user'
+                              ? '0 4px 16px rgba(99,102,241,0.3)'
+                              : '0 2px 8px rgba(0,0,0,0.06)',
                           }}
                         >
-                          <Typography>{message.content}</Typography>
+                          <Typography sx={{ fontSize: '0.95rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                            {msg.content}
+                          </Typography>
                         </Paper>
+                        <Typography variant="caption" sx={{ mt: 0.5, display: 'block', color: 'text.disabled', px: 1 }}>
+                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </Typography>
                       </Box>
                     </Box>
                   ))
@@ -208,9 +286,9 @@ export default function ChatPage() {
                 <div ref={messagesEndRef} />
               </Box>
 
-              <Divider sx={{ mb: 2 }} />
-
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              {/* Input */}
+              <Divider />
+              <Box sx={{ p: 2, bgcolor: '#fff', display: 'flex', gap: 1 }}>
                 <TextField
                   fullWidth
                   multiline
@@ -220,37 +298,57 @@ export default function ChatPage() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={handleKeyPress}
                   disabled={sending}
+                  inputRef={inputRef}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '16px',
+                      bgcolor: '#f8fafc',
+                    },
+                  }}
                 />
                 <Button
                   variant="contained"
                   onClick={handleSendMessage}
                   disabled={!input.trim() || sending}
+                  sx={{
+                    borderRadius: '16px',
+                    minWidth: 52,
+                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                  }}
                 >
-                  {sending ? <CircularProgress size={24} /> : <SendIcon />}
+                  {sending ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : <SendIcon />}
                 </Button>
               </Box>
             </>
           ) : (
-            <Box
-              sx={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <SmartToyIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h6" color="textSecondary">
-                Select a chat or start a new conversation
+            <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', p: 4 }}>
+              <SmartToyIcon sx={{ fontSize: 96, color: '#6366f1', mb: 3 }} />
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+                AI Chat Assistant
               </Typography>
-              <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-                Chat with the AI assistant to generate and discuss questions
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
+                Select a conversation or start a new one to chat with the AI
               </Typography>
+              <Button
+                variant="contained"
+                size="large"
+                startIcon={<AddIcon />}
+                onClick={startNewChat}
+                sx={{
+                  borderRadius: '14px',
+                  py: 1.5,
+                  px: 3,
+                  fontWeight: 600,
+                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                }}
+              >
+                Start New Chat
+              </Button>
             </Box>
           )}
         </Paper>
       </Box>
+      <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
     </Container>
   );
 }

@@ -14,8 +14,14 @@ export const createQuestion = (data) => API.post('/quiz/questions/', data);
 export const updateQuestion = (id, data) => API.patch(`/quiz/questions/${id}/`, data);
 export const deleteQuestion = (id) => API.delete(`/quiz/questions/${id}/`);
 
+// Generate Questions (AI + DB)
+export const generateQuestions = (data) => API.post('/quiz/questions/generate/', data);
+
 // Quiz Sessions
 export const getSessions = () => API.get('/quiz/sessions/');
 export const getSession = (id) => API.get(`/quiz/sessions/${id}/`);
 export const createSession = (data) => API.post('/quiz/sessions/', data);
-export const generateQuestions = (data) => API.post('/quiz/sessions/generate/', data); // For AI agent
+export const bulkUploadQuestions = (formData) => 
+  API.post('/quiz/questions/bulk_upload/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });

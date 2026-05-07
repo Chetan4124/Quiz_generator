@@ -10,4 +10,7 @@ router.register(r'sessions', views.QuizSessionViewSet, basename='session')
 urlpatterns = [
     path('register/', views.RegisterView.as_view(), name='register'),
     path('', include(router.urls)),
+    path('sessions/generate/', views.QuestionViewSet.as_view({'post': 'generate'}), name='session-generate'),
+    # Bulk upload endpoint
+    path('questions/bulk_upload/', views.QuestionViewSet.as_view({'post': 'bulk_upload'}), name='bulk-upload'),
 ]
